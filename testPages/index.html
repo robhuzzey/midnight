@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+	<body>
+		<button id="btnOne" data-track-click="true" data-track-label="Test LAbel" data-track-category="Click">Click</button>
+		<span class="mouseOverDetect" data-track-mouseover="true" data-track-label="Test LAbel" data-track-category="Mouse Over">Mouseover Me</span>
+	</body>
+</html>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+<script src="//localhost:8000"></script>
+<script>
+	$( '#btnOne' ).click( function() { console.log('did stuff #2'); } );
+	$( '.mouseOverDetect' ).mouseover( function(){ console.log('Is Over'); } );
+</script>
