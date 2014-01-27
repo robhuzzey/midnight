@@ -1,61 +1,45 @@
 var midnight = {
-	xhr: new XMLHttpRequest(),
-
-	post: function( originalElement, event, dataObject ) {
-		midnight.xhr.open("POST", "http://localhost:8000/", true);
-		midnight.xhr.setRequestHeader("Content-type", "application/json");
-		this.xhr.onreadystatechange = function () {
-			if( midnight.xhr.readyState === 2 ) {
-				midnight.processInteraction( originalElement, event.type );
-			} else if( midnight.xhr.readyState === 4 && midnight.xhr.status !== 200 ) {
-				midnight.processInteraction( originalElement, event.type );
+	originalEventCaptureQueue: [],
+	isInQueue: function( searchElement ) {
+		var retVal = false;
+		for(var item in this.originalEventCaptureQueue) {
+			if( searchElement === this.originalEventCaptureQueue[item] ){
+				this.originalEventCaptureQueue.splice( item, 1 );
+				return true;
 			}
-		};
-		midnight.xhr.send(JSON.stringify(dataObject));
+		}
 	},
-	processInteraction: function ( originalElement, interaction ) {
-		midnight.xhr.abort();
-		switch( interaction ) {
-			case 'click':
-				$( originalElement ).click();
-				break;
-			case 'mouseover':
-				$( originalElement ).mouseover();
-				break;
+	xhr: new XMLHttpRequest(),
+	post: function( originalElement, event ) {
+		if( !midnight.isInQueue( originalElement ) ) {
+			event.preventDefault();
+			event.stopPropagation();
+			event.stopImmediatePropagation();
+			midnight.originalEventCaptureQueue.push( originalElement );
+			var dataObject = {
+				"label": originalElement.dataset.trackLabel,
+				"category": originalElement.dataset.trackCategory
+			};
+			midnight.xhr.open("POST", "midnightUrl", true);
+			midnight.xhr.setRequestHeader("Content-type", "application/json");
+			midnight.xhr.onreadystatechange = function () {
+				if( midnight.xhr.readyState === 2 ) {
+					midnight.xhr.abort();
+					var evObj = document.createEvent('MouseEvents');
+					evObj.initEvent( event.type, true, false );
+					originalElement.dispatchEvent(evObj);
+				}
+			};
+			midnight.xhr.send(JSON.stringify(dataObject));
 		}
 	}
 }
 
-$( '[data-track-mouseover="true"]' ).on( 'mouseover', function( event ) { 
-	if( $( this ).data( 'original-event-captured' ) ) {
-		$( this ).removeData( 'original-event-captured' );
-	} else {
-		event.preventDefault();
-		event.stopPropagation();
-		event.stopImmediatePropagation();
-		$( this ).data( 'original-event-captured', true );
-		var dataObject = {
-			"label": $( this ).data( 'track-label' ),
-			"category": $( this ).data( 'track-category' )
-		};
-		midnight.post( this, event, dataObject );
-		return false
-	}	
-} );
-
-$( '[data-track-click="true"]' ).on( 'click', function( event ) { 
-	if( $( this ).data( 'original-event-captured' ) ) {
-		$( this ).removeData( 'original-event-captured' );
-	} else {
-		event.preventDefault();
-		event.stopPropagation();
-		event.stopImmediatePropagation();
-		$( this ).data( 'original-event-captured', true );
-		var dataObject = {
-			"label": $( this ).data( 'track-label' ),
-			"category": $( this ).data( 'track-category' )
-		};
-		midnight.post( this, event, dataObject );
-		return false
-	}	
-} );
+var mOvers = document.querySelectorAll('[data-track="true"]');
+for( var elemCount = 0; elemCount <= mOvers.length; elemCount++ ) {
+	if( mOvers[elemCount] ) {
+		mOvers[elemCount].addEventListener( mOvers[elemCount].dataset.trackEvent, function( event ) {
+			midnight.post( this, event );
+		}, false );
+	}
+}
